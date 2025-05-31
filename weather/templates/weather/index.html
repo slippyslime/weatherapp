@@ -1,0 +1,154 @@
+{% extends "weather/base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h1 class="text-center mb-4">Weather Forecast</h1>
+
+                <div class="input-group mb-3">
+                    <input type="text" id="city-input" class="form-control" placeholder="Enter city name..."
+                           value="{{ last_city|default:'' }}">
+                    <button id="search-btn" class="btn btn-primary">Search</button>
+                </div>
+
+                <div id="suggestions" class="list-group" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="weather-result" class="card shadow-sm mb-4" style="display: none;">
+            <div class="card-body">
+                <h2 class="text-center" id="city-name"></h2>
+                <div class="row" id="weather-data"></div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h3 class="mb-0">Search History</h3>
+            </div>
+            <div class="card-body search-history">
+                <ul id="history-list" class="list-group">
+                    {% for item in history %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ item.city.name }}
+                        <span class="badge bg-primary rounded-pill">{{ item.search_count }} searches</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">No search history yet</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cityInput = document.getElementById('city-input');
+    const searchBtn = document.getElementById('search-btn');
+    const suggestions = document.getElementById('suggestions');
+    const weatherResult = document.getElementById('weather-result');
+
+    // Автодополнение городов
+    cityInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            suggestions.style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/city-search?q=${encodeURIComponent(query)}`);
+            const cities = await response.json();
+
+            if (cities.length === 0) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            suggestions.innerHTML = '';
+            cities.forEach(city => {
+                const item = document.createElement('a');
+                item.href = '#';
+                item.className = 'list-group-item list-group-item-action';
+                item.textContent = `${city.name}, ${city.country}`;
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    cityInput.value = city.name;
+                    suggestions.style.display = 'none';
+                });
+                suggestions.appendChild(item);
+            });
+
+            suggestions.style.display = 'block';
+
+        } catch (error) {
+            console.error('Error fetching city suggestions:', error);
+        }
+    });
+
+    // Поиск погоды
+    searchBtn.addEventListener('click', async function() {
+        const city = cityInput.value.trim();
+        if (!city) return;
+
+        try {
+            const response = await fetch(`/api/weather/${encodeURIComponent(city)}/`);
+            const data = await response.json();
+
+            // Обновляем UI с данными о погоде
+            document.getElementById('city-name').textContent = `${data.city.name}, ${data.city.country}`;
+
+            const weatherHTML = `
+                <div class="col-md-6">
+                    <div class="weather-card card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Current Weather</h5>
+                            <p class="display-1">${Math.round(data.weather.current_weather.temperature)}°C</p>
+                            <p>Wind: ${data.weather.current_weather.windspeed} km/h</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="weather-card card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Details</h5>
+                            <p>Humidity: ${data.weather.hourly.relativehumidity_2m[0]}%</p>
+                            <p>Last updated: ${new Date().toLocaleTimeString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('weather-data').innerHTML = weatherHTML;
+            weatherResult.style.display = 'block';
+
+            // Обновляем историю
+            const historyResponse = await fetch('/api/history/');
+            const history = await historyResponse.json();
+
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = history.map(item => `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${item.city.name}
+                    <span class="badge bg-primary rounded-pill">${item.search_count} searches</span>
+                </li>
+            `).join('');
+
+        } catch (error) {
+            alert('Error fetching weather data');
+            console.error(error);
+        }
+    });
+
+    // Если есть последний город в куках - сразу загружаем его погоду
+    {% if last_city %}
+    document.getElementById('search-btn').click();
+    {% endif %}
+});
+</script>
+{% endblock %}

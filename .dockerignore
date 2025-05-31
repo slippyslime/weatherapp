@@ -1,0 +1,10 @@
+pycache/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.env
+*.log
+staticfiles/
+media/
+node_modules/

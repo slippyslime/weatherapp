@@ -1,0 +1,55 @@
+# Python
+pycache/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+
+# PostgreSQL (если вдруг есть локальные данные)
+pgdata/
+postgres-data/
+
+# Virtualenv
+venv/
+ENV/
+env/
+.venv/
+
+# VSCode / PyCharm
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# Docker
+*.pid
+*.tar
+*.gz
+*.bak
+
+# macOS
+.DS_Store
+
+# Coverage / test
+.coverage
+htmlcov/
+pytest_cache/
+
+# Migrations (если генерятся автоматически — опционально)
+/migrations/__pycache__/
+/migrations/*.pyc
+
+# System
+Thumbs.db
